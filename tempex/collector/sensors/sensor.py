@@ -3,10 +3,12 @@ import json
 
 
 class Sensor:
+    STORAGE_ROOT = os.environ.get('TEMPEX_STORAGE_ROOT', os.getcwd())
+
     def __init__(self, name, config):
         self.__name = name
         self.__config = config or {}
-        self.__obs_storage = self.__config.get('observations', 'obs')
+        self.__obs_storage = os.path.join(self.STORAGE_ROOT, self.__config.get('observations', 'obs'))
 
     @property
     def name(self):

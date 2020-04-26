@@ -13,11 +13,15 @@ services:
       - master
     volumes:
       - "$TEMPEX_PACKAGE_ROOT:/app/tempex"
-      - "$PWD/config.ini:/app/config.ini"
+      - "$TEMPEX_CONFIG_FILE:/app/config.ini"
+      - "$PWD:$PWD"
+    environment:
+      TEMPEX_STORAGE_ROOT: "$PWD"
     working_dir: "/app"
-    entrypoint: "python3 -m tempex"
+    entrypoint: "python3 -u -m tempex"
     command: "--version"
 
   collector:
     <<: *base
     command: "collector"
+    network_mode: "host"

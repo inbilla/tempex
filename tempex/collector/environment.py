@@ -56,3 +56,6 @@ class Environment:
 
             sensor = class_constructor(name, sensor_config)
             self.sensors.append(sensor)
+
+        for sensor in self.sensors:
+            print("Loaded sensor: {}".format(sensor.name))
