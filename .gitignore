@@ -1,0 +1,12 @@
+# Ignore environments and IDE data
+.venv*/
+.idea/
+
+# Ignore observations
+obs/
+
+# Don't commit configuration
+config.ini
+
+# Don't commit runtimes
+*.pyc
