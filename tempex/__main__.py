@@ -1,17 +1,28 @@
 import sys
 import argparse
 from .collector.__main__ import main as collector_main
-
+from .control.__main__ import main as control_main
+from .version import VERSION
 
 COMPONENT_HANDLERS = {
     'collector': collector_main,
+    'control': control_main,
 }
+
+
+class PrintVersionAction(argparse.Action):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, nargs=0, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        print("tempex {}".format(VERSION))
+        sys.exit(0)
 
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--version', action=PrintVersionAction)
     parser.add_argument('component', choices=COMPONENT_HANDLERS.keys())
-
     args = parser.parse_known_args(args)
     return args
 

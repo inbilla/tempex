@@ -1,11 +1,15 @@
+import os
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
+with open(os.path.join('tempex', 'requirements.txt')) as f:
     requirements = f.readlines()
+
+with open('tempex', 'VERSION') as f:
+    version = f.read().strip()
 
 setup(
     name='tempex',
-    version='1.0.0',
+    version=version,
     description='Temperature logging and analysis.',
     packages=find_packages(),
     entry_points={

@@ -1,4 +1,23 @@
 version: "3"
+
 services:
+  master:
+    image: tempex/master
+    build:
+      context: ..
+      dockerfile: docker/master/Dockerfile
+
+  base_service: &base
+    image: tempex/master
+    depends_on:
+      - master
+    volumes:
+      - "$TEMPEX_PACKAGE_ROOT:/app/tempex"
+      - "$PWD/config.ini:/app/config.ini"
+    working_dir: "/app"
+    entrypoint: "python3 -m tempex"
+    command: "--version"
+
   collector:
-    image: python:3
+    <<: *base
+    command: "collector"
