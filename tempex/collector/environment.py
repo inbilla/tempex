@@ -17,11 +17,11 @@ class Environment:
 
     def run(self):
         while True:
-            self.update()
+            self.run_once()
             print("Sleeping for {} seconds...".format(self.update_rate))
             time.sleep(self.update_rate)
 
-    def update(self):
+    def run_once(self):
         print("-"*80)
         for sensor in self.sensors:
             latest = sensor.fetch_latest()
