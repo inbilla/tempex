@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 with open(os.path.join('tempex', 'requirements.txt')) as f:
     requirements = f.readlines()
 
-with open('tempex', 'VERSION') as f:
+with open(os.path.join('tempex', 'VERSION')) as f:
     version = f.read().strip()
 
 setup(
