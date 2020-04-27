@@ -1,4 +1,5 @@
 import datetime
+import socket
 from libpurecool.dyson import DysonAccount
 from .sensor import Sensor, SensorObservation
 
@@ -10,6 +11,7 @@ class DysonPureCool(Sensor):
         self.__username = self.read_config("username", required=True)
         self.__password = self.read_config("password", required=True)
         self.__country = self.read_config("country", required=True)
+        self.__device_hostname = self.read_config("hostname", required=False)
         self.__account = None
         self.__device = None
 
@@ -40,9 +42,11 @@ class DysonPureCool(Sensor):
         devices = dyson_account.devices()
 
         # Connect using discovery to the first device
-        connected = devices[0].auto_connect()
+        if self.__device_hostname:
+            connected = devices[0].connect(self.__device_hostname)
+        else:
+            connected = devices[0].auto_connect(timeout=10, retry=3)
         if not connected:
-            print('Unable to access Dyson device')
             return None
         # connected == device available, state values are available, sensor values
 
@@ -62,6 +66,9 @@ class DysonPureCool(Sensor):
             obs = []
 
         device = self.connect_device()
+        if not device:
+            return None
+
         data = SensorObservation(
             timestamp=datetime.datetime.now(datetime.timezone.utc).timestamp(),
             temperature=device.environmental_state.temperature - 273.15,
@@ -70,5 +77,8 @@ class DysonPureCool(Sensor):
 
         obs.append(data.all_obs)
         self.update_observations(obs_label, obs)
+
+        device.disconnect()
+        self.__device = None
 
         return data

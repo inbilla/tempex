@@ -30,14 +30,21 @@ class Environment:
     def print_observation(self, sensor, latest):
         heading = "{}: ".format(sensor.name)
         indent = " " * len(heading)
-        for i, obs in enumerate(("temperature", "humidity")):
-            start = heading
-            if i:
-                start = indent
+        num_printed = 0
+        if latest:
+            for i, obs in enumerate(("temperature", "humidity")):
+                start = heading
+                if i:
+                    start = indent
 
-            value = getattr(latest, obs, None)
-            if value is not None:
-                print("{}{}: {}".format(start, obs, value))
+                value = getattr(latest, obs, None)
+                if value is not None:
+                    print("{}{}: {}".format(start, obs, value))
+                    num_printed += 1
+            if num_printed == 0:
+                print("{}{}".format(heading, "Unknown"))
+        else:
+            print("{}{}".format(heading, "Failed"))
 
     def load_config(self, config_filename):
         parser = configparser.ConfigParser()
