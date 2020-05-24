@@ -3,6 +3,7 @@ from tempex.collector.environment import Environment
 import sys
 import subprocess
 import time
+from ..common import config
 
 
 def parse_args(args=None):
@@ -20,8 +21,8 @@ def main(args=None):
     args = parse_args(args)
 
     period = args.period
-    config = "config.ini"
-    environment = Environment(config)
+    config_file = config.get_config_file()
+    environment = Environment(config_file)
     if args.once:
         environment.run_once()
     else:
