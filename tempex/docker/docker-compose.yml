@@ -29,7 +29,7 @@ services:
   api_service:
     <<: *base
     entrypoint: "/usr/bin/env uwsgi"
-    command: "--socket 0.0.0.0:3031 --module tempex.api.app"
+    command: "--socket 0.0.0.0:3031 --module tempex.api.app --callable app --master --processes 4 --threads 2"
     expose:
       - "3031"
 
@@ -42,5 +42,5 @@ services:
       - "$TEMPEX_PACKAGE_ROOT/docker/proxy/nginx.conf:/etc/nginx/conf.d/default.conf"
     depends_on:
       - api_service
-      
+
 

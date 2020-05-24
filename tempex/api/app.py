@@ -1,6 +1,11 @@
+from flask import Flask
 
+app = Flask(__name__)
 
-def application(env, start_response):
-    start_response('200 OK', [('Content-Type','text/html')])
-    return [b"API Hello World"]
+@app.route('/')
+def index():
+    return "<span style='color:red'>I am app 1</span>"
 
+@app.route('/api/')
+def api():
+    return "<span style='color:red'>I am app 1 API</span>"

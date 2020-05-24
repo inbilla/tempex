@@ -2,3 +2,4 @@ libpurecool
 requests
 docker-compose
 uwsgi
+flask
