@@ -1,4 +1,5 @@
 import time
+import datetime
 import configparser
 from .sensors.australian_bureau_of_meteorology import AustralianBureauOfMeteorology
 from .sensors.dyson_pure_cool import DysonPureCool
@@ -17,6 +18,7 @@ class Environment:
 
     def run_once(self):
         print("-"*80)
+        print("Observations for: ", datetime.datetime.now())
         for sensor in self.sensors:
             latest = sensor.fetch_latest()
             self.print_observation(sensor, latest)
