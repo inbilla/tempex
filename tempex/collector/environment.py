@@ -15,12 +15,6 @@ class Environment:
         self.update_rate = 15 * 60
         self.load_config(config_filename)
 
-    def run(self):
-        while True:
-            self.run_once()
-            print("Sleeping for {} seconds...".format(self.update_rate))
-            time.sleep(self.update_rate)
-
     def run_once(self):
         print("-"*80)
         for sensor in self.sensors:

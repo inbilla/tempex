@@ -14,7 +14,6 @@ services:
     volumes:
       - "$TEMPEX_PACKAGE_ROOT:/app/tempex"
       - "$TEMPEX_CONFIG_FILE:/app/config.ini"
-      - "$PWD:$PWD"
     environment:
       TEMPEX_STORAGE_ROOT: "$PWD"
     working_dir: "/app"
@@ -25,3 +24,13 @@ services:
     <<: *base
     command: "collector"
     network_mode: "host"
+
+  proxy:
+    image: nginx
+    ports:
+      - 8000:80
+    volumes:
+      - "$TEMPEX_PACKAGE_ROOT/tempex/frontend:/var/www"
+      - "$TEMPEX_PACKAGE_ROOT/docker/proxy/nginx.conf:/etc/nginx/conf.d/default.conf.template"
+
+

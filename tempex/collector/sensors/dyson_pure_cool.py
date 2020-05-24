@@ -1,5 +1,6 @@
 import datetime
 import socket
+import queue
 from libpurecool.dyson import DysonAccount
 from .sensor import Sensor, SensorObservation
 
@@ -31,22 +32,36 @@ class DysonPureCool(Sensor):
 
         return self.__account
 
+    def reset_account(self):
+        # Call this to clear the cached device information
+        # Expected to be called after a problem occurs
+        self.__account = None
+        self.__device = None
+
     def connect_device(self):
         if self.__device:
             return self.__device
 
         # Log to Dyson account
         dyson_account = self.login_account()
+        if not dyson_account:
+            return None
 
         # List sensors available on the Dyson account
         devices = dyson_account.devices()
 
         # Connect using discovery to the first device
-        if self.__device_hostname:
-            connected = devices[0].connect(self.__device_hostname)
-        else:
-            connected = devices[0].auto_connect(timeout=10, retry=3)
+        try:
+            if self.__device_hostname:
+                connected = devices[0].connect(self.__device_hostname)
+            else:
+                connected = devices[0].auto_connect(timeout=10, retry=3)
+        except queue.Empty:
+            self.reset_account()
+            return None
+
         if not connected:
+            self.reset_account()
             return None
         # connected == device available, state values are available, sensor values
 
@@ -78,7 +93,7 @@ class DysonPureCool(Sensor):
         obs.append(data.all_obs)
         self.update_observations(obs_label, obs)
 
-        device.disconnect()
-        self.__device = None
+        #device.disconnect()
+        #self.__device = None
 
         return data
