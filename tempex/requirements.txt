@@ -1,3 +1,4 @@
 libpurecool
 requests
 docker-compose
+uwsgi
