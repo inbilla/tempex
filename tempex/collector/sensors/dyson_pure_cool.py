@@ -71,8 +71,7 @@ class DysonPureCool(Sensor):
 
     def fetch_latest(self):
         now = datetime.datetime.now(datetime.timezone.utc)
-        obs_label = r"{station_id}_{date}".format(
-            station_id=self.name,
+        obs_label = r"{date}".format(
             date=now.strftime("%Y%m%d"),
         )
 
@@ -97,3 +96,15 @@ class DysonPureCool(Sensor):
         #self.__device = None
 
         return data
+
+    def recent_observations(self, last_timestamp):
+        for label in self._labels_changed_since(last_timestamp):
+            data = self.load_observations(label)
+            for obs in data:
+                obs_time_utc = datetime.datetime.utcfromtimestamp(obs['timestamp'])
+                obs_time_utc = obs_time_utc.replace(tzinfo=datetime.timezone.utc)
+                obs['timestamp'] = obs_time_utc
+
+                sensor_obs = SensorObservation(**obs)
+                if sensor_obs.timestamp > last_timestamp:
+                    yield sensor_obs

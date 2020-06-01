@@ -1,10 +1,10 @@
-from flask import Flask
+import flask
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
 @app.route('/')
 def index():
-    return "<span style='color:red'>I am app 1</span>"
+    flask.abort(400)
 
 @app.route('/api/')
 def api():

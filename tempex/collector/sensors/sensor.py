@@ -1,5 +1,8 @@
 import os
 import json
+import glob
+import re
+import datetime
 
 
 class Sensor:
@@ -17,18 +20,21 @@ class Sensor:
     def fetch_latest(self):
         raise NotImplemented()
 
+    def recent_observations(self, last_timestamp):
+        raise NotImplemented()
+
     def read_config(self, key, default=None, required=True):
         if required and key not in self.__config:
             raise Exception("Missing configuration entry: {} for sensor: {}".format(key, self.name))
         return self.__config.get(key, default)
 
     def update_observations(self, label, data):
-        filename = os.path.join(self.__obs_storage, "{}.json".format(label))
+        filename = os.path.join(self.__obs_storage, "{}_{}.json".format(self.name, label))
         with open(filename, 'w') as f:
             f.write(json.dumps(data, indent=4))
 
     def load_observations(self, label):
-        filename = "{}/{}.json".format(self.__obs_storage, label)
+        filename = "{}/{}_{}.json".format(self.__obs_storage, self.name, label)
 
         if not os.path.isfile(filename):
             return None
@@ -38,6 +44,15 @@ class Sensor:
 
         data = json.loads(content)
         return data
+
+    def _labels_changed_since(self, last_timestamp):
+        glob_pat = "{}/{}_*.json".format(self.__obs_storage, self.name)
+        for filename in glob.glob(glob_pat):
+            filestamp = datetime.datetime.utcfromtimestamp(os.path.getmtime(filename))
+            filestamp = filestamp.replace(tzinfo=datetime.timezone.utc)
+            if filestamp > last_timestamp:
+                m = re.search("{}/{}_(.*)\.json".format(self.__obs_storage, self.name), filename)
+                yield m.group(1)
 
 
 class SensorObservation:

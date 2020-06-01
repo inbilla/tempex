@@ -58,3 +58,18 @@ class AustralianBureauOfMeteorology(Sensor):
             humidity=latest_obs['rel_hum'],
         )
         return obs
+
+    def recent_observations(self, last_timestamp):
+        for label in self._labels_changed_since(last_timestamp):
+            data = self.load_observations(label)
+            for obs in data['observations']['data']:
+                obs_time_str = obs['aifstime_utc']
+                obs_time_utc = datetime.datetime.strptime(obs_time_str, "%Y%m%d%H%M%S", )
+                obs_time_utc = obs_time_utc.replace(tzinfo=datetime.timezone.utc)
+
+                if obs_time_utc > last_timestamp:
+                    yield SensorObservation(
+                        timestamp=obs_time_utc,
+                        temperature=obs['air_temp'],
+                        humidity=obs['rel_hum'],
+                    )

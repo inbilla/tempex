@@ -3,12 +3,14 @@ import sys
 import argparse
 from .collector.__main__ import main as collector_main
 from .control.__main__ import main as control_main
+from .processor.__main__ import main as processor_main
 from .version import VERSION
 
 
 COMPONENT_HANDLERS = {
     'collector': collector_main,
     'control': control_main,
+    'processor': processor_main,
 }
 
 
