@@ -7,9 +7,13 @@ class Processor:
         self.environment = environment
         self.sensor_last_processed = {}
         self.__es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
-        self.create_index()
+        self.__index_created = False
 
     def create_index(self, index_name='observations'):
+        if self.__index_created:
+            return
+        self.__index_created = True
+
         created = False
         # index settings
         settings = {
@@ -32,6 +36,7 @@ class Processor:
             return created
 
     def store_record(self, record, index_name='observations'):
+        self.create_index()
         try:
             outcome = self.__es.index(index=index_name, doc_type='obs', body=record)
         except Exception as ex:
@@ -64,3 +69,59 @@ class Processor:
             'name': sensor.name
         })
         self.store_record(record)
+
+    def data_query(self, es, time_begin="now-5d", time_end="now", interval="30m", values=["avg_temperature"]):
+        res = es.search(
+            index="observations",
+            body={
+                "query": {
+                    "bool": { 
+                        "filter": [
+                            { 
+                                "range": { 
+                                    "timestamp": { 
+                                        "gte": time_begin,  # "now-5d",
+                                        "lte": time_end,  # "now"
+                                    },
+                                },
+                            },
+                        ], 
+                    }, 
+                },
+                "size": 0, 
+                "aggregations": { 
+                    "sensors": { 
+                        "terms": { 
+                            "field": "name.keyword", 
+                        },
+                        "aggregations": { 
+                            "per_interval": { 
+                                "date_histogram": { 
+                                    "field": "timestamp", 
+                                    "fixed_interval": interval
+                                },
+                                "aggregations": {
+                                    k: {k.split("_")[0]: {"field": k.split("_")[1]}} for k in values
+                                }
+                            } 
+                        }
+                    }
+                },
+            })
+        results = {}
+        for sensor in res['aggregations']['sensors']['buckets']:
+            sensor_name = sensor['key']
+            for obs in sensor['per_interval']['buckets']:
+                timestamp = obs['key']
+                time_bucket = results.get(timestamp, {})
+
+                time_bucket[sensor_name] = {
+                    k: obs[k]['value'] for k in values
+                }
+                results[timestamp] = time_bucket
+
+        return results
+
+    def query(self):
+        import json
+        print(json.dumps(self.data_query(self.__es), indent=4))

@@ -12,6 +12,7 @@ def parse_args(args=None):
 
     parser.add_argument('--once', default=False, action='store_true')
     parser.add_argument('--period', default=5*60)
+    parser.add_argument('--query', action='store_true')
 
     args = parser.parse_args(args)
     return args
@@ -24,8 +25,11 @@ def main(args=None):
     config_file = config.get_config_file()
     environment = Environment(config_file)
     processor = Processor(environment)
+
     if args.once:
         processor.run_once()
+    elif args.query:
+        processor.query()
     else:
         while True:
             processor.run_once()
