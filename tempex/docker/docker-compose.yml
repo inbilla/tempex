@@ -16,6 +16,7 @@ services:
       - "$TEMPEX_CONFIG_FILE:/app/config.ini"
       - "$PWD:$PWD"
     environment:
+      ELASTIC_HOST: "es01"
       TEMPEX_STORAGE_ROOT: "$PWD"
     working_dir: "/app"
     entrypoint: "python3 -u -m tempex"
@@ -29,6 +30,8 @@ services:
   processor:
     <<: *base
     command: "processor"
+    depends_on:
+      - es01
 
   api_service:
     <<: *base

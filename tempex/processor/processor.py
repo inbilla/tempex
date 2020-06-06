@@ -1,12 +1,15 @@
 import datetime
 from elasticsearch import Elasticsearch
+import os
 
 
 class Processor:
     def __init__(self, environment):
         self.environment = environment
         self.sensor_last_processed = {}
-        self.__es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+        es_host = os.environ.get('ELASTIC_HOST', 'localhost') 
+        print("Elasticserver: {}".format(es_host))
+        self.__es = Elasticsearch([{'host': es_host, 'port': 9200}])
         self.__index_created = False
 
     def create_index(self, index_name='observations'):
@@ -70,7 +73,7 @@ class Processor:
         })
         self.store_record(record)
 
-    def data_query(self, es, time_begin="now-5d", time_end="now", interval="30m", values=["avg_temperature"]):
+    def data_query(self, es, time_begin="now-5d", time_end="now", interval="15m", values=["avg_temperature"]):
         res = es.search(
             index="observations",
             body={
@@ -111,7 +114,7 @@ class Processor:
         results = {}
         for sensor in res['aggregations']['sensors']['buckets']:
             sensor_name = sensor['key']
-            for obs in sensor['per_interval']['buckets']:
+            for obs in sorted(sensor['per_interval']['buckets'], key=lambda x: x['key']):
                 timestamp = obs['key']
                 time_bucket = results.get(timestamp, {})
 

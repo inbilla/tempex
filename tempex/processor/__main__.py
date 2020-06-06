@@ -31,6 +31,8 @@ def main(args=None):
     elif args.query:
         processor.query()
     else:
+        print("Waiting for startup")
+        time.sleep(60*2)
         while True:
             processor.run_once()
             print("Sleeping for {} seconds...".format(period))

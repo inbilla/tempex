@@ -66,7 +66,7 @@ def data_query(time_begin="now-5d", time_end="now", interval="30m", values=["avg
     results = {}
     for sensor in res['aggregations']['sensors']['buckets']:
         sensor_name = sensor['key']
-        for obs in sensor['per_interval']['buckets']:
+        for obs in reversed(sorted(sensor['per_interval']['buckets'], key=lambda x: x['key'])):
             timestamp = obs['key']
             time_bucket = results.get(timestamp, {})
 
