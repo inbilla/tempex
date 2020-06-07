@@ -104,7 +104,9 @@ Vue.component('graph', {
             // append a g for all the mouse over nonsense
             var mouseG = svg.append("g")
                 .attr("class", "mouse-over-effects");
-            this.mouse_g = mouseG;
+            
+            this.mouse_g = mouseG.append("g");
+
             // this is the vertical line
             mouseG.append("path")
                 .attr("class", "mouse-line")
