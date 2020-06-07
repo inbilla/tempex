@@ -249,8 +249,8 @@ Vue.component('graph', {
             var data = d3.entries(this.query_result);
 
             var series = [];
-            series.push(this.prepare_series(data, "Indoors", "avg_temperature"));
-            series.push(this.prepare_series(data, "Outside", "avg_temperature"));
+            series.push(this.prepare_series(data, "Indoors", this.series));
+            series.push(this.prepare_series(data, "Outside", this.series));
 
             this.draw_axes(series);
             this.draw_lines(series);
@@ -258,7 +258,7 @@ Vue.component('graph', {
         },
         draw_axes(series) {
             var x_extents = [];
-            var y_extents = [];
+            var y_extents = [0];
             series.forEach((s)=>{
                 x_extents = x_extents.concat(s.x_extent);
                 y_extents = y_extents.concat(s.y_extent);
