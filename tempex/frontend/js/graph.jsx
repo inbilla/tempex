@@ -10,6 +10,7 @@ Vue.component('graph', {
             xScale: null,
             yScale: null,
             transition_time: 1500,
+            selected_time: null,
         };
     },
     template: `
@@ -82,9 +83,6 @@ Vue.component('graph', {
                 .append("svg")
                 .attr("viewBox", "0 0 1000 250")
                 .attr("perserveAspectRatio", "xMinYMid")
-                //.attr("preserveAspectRatio", "xMidYMid meet")
-                //.attr("width", width + margin.left + margin.right)
-                //.attr("height", height + margin.top + margin.bottom)
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -95,7 +93,6 @@ Vue.component('graph', {
                 .range([ 0, width ]);
             this.svg.append("g")
                 .attr("transform", "translate(0," + height + ")")
-                //.style("font-size", "14px")
                 .attr("class","x axis")
                 .call(d3.axisBottom(this.xScale));
 
@@ -131,7 +128,8 @@ Vue.component('graph', {
             var mouseG = svg.append("g")
                 .attr("class", "mouse-over-effects");
             
-            this.mouse_g = mouseG.append("g");
+            this.mouse_g = mouseG;
+            this.mouse_series_g = mouseG.append("g");
 
             // this is the vertical line
             mouseG.append("path")
@@ -140,27 +138,6 @@ Vue.component('graph', {
                 .style("stroke-width", "1px")
                 .style("opacity", "0");
             
-            // here's a g for each circle and text on the line
-            // var mousePerLine = mouseG.selectAll('.mouse-per-line')
-            //     .data(cities)
-            //     .enter()
-            //     .append("g")
-            //     .attr("class", "mouse-per-line");
-
-            // // the circle
-            // mousePerLine.append("circle")
-            //     .attr("r", 7)
-            //     .style("stroke", function(d) {
-            //     return color(d.name);
-            //     })
-            //     .style("fill", "none")
-            //     .style("stroke-width", "1px")
-            //     .style("opacity", "0");
-
-            // // the text
-            // mousePerLine.append("text")
-            //     .attr("transform", "translate(10,3)");
-
             // rect to capture mouse movements
             var mouseCap = mouseG.append('svg:rect')
                 .attr('width', this.xScale.range()[1])
@@ -175,6 +152,7 @@ Vue.component('graph', {
                         .style("opacity", "0");
                     mouseG.selectAll(".mouse-per-line text")
                         .style("opacity", "0");
+                    this.select_time(moment())
                     })
                 .on('mouseover', () => { // on mouse in show line, circles and text
                     mouseG.select(".mouse-line")
@@ -187,68 +165,8 @@ Vue.component('graph', {
                 .on('mousemove', () => { // mouse moving over canvas
                     var mouse = d3.mouse(mouseCap.node());
                     var xDate = this.xScale.invert(mouse[0]);
-
-                    d3.select(this.$refs.current_x)
-                        .text(d3.timeFormat("%a %H:%M")(xDate));
-                    d3.select(this.$refs.rel_current_x)
-                        .text(moment(xDate).fromNow());
                     
-                    // move the vertical line
-                    mouseG.select(".mouse-line")
-                        .attr("d", () => {
-                            var d = "M" + mouse[0] + "," + this.yScale.range()[0];
-                            d += " " + mouse[0] + "," + 0;
-                            return d;
-                        });
-                    
-                    // position the circle and text
-                    var self = this;
-                    mouseG.selectAll(".mouse-per-line")
-                        .each(function(d) {
-                            var xDate = self.xScale.invert(mouse[0]),
-                                bisect = d3.bisector((d) => { return +d.x; }).right;
-                                index = bisect(d.data, xDate);
-                            startDatum = d.data[index - 1],
-                            endDatum = d.data[index];
-                            if (!startDatum) {
-                                startDatum = endDatum;
-                            }
-                            if (!endDatum){
-                                endDatum = startDatum;
-                            }
-                            interpolate = d3.interpolateNumber(startDatum.y, endDatum.y),
-                            range = endDatum.x - startDatum.x,
-                            valueY = interpolate((xDate - startDatum.x) / range);
-
-                            if (!valueY)
-                            {
-                                return;
-                            }
-                            // since we are use curve fitting we can't relay on finding the points like I had done in my last answer
-                            // this conducts a search using some SVG path functions
-                            // to find the correct position on the line
-                            // from http://bl.ocks.org/duopixel/3824661
-                            // var beginning = 0,
-                            //     end = lines[i].getTotalLength(),
-                            //     target = null;
-
-                            // while (true){
-                            //     target = Math.floor((beginning + end) / 2);
-                            //     pos = lines[i].getPointAtLength(target);
-                            //     if ((target === end || target === beginning) && pos.x !== mouse[0]) {
-                            //         break;
-                            //     }
-                            //     if (pos.x > mouse[0])      end = target;
-                            //     else if (pos.x < mouse[0]) beginning = target;
-                            //     else break; //position found
-                            // }
-
-                            // // update the text with y value
-                            d3.select(this).select('text')
-                                .text(valueY.toFixed(2));
-                            d3.select(this)
-                                .attr("transform", "translate(" + mouse[0] + "," + self.yScale(valueY) +")");
-                        });
+                    this.select_time(xDate);
                 });
         },
         prepare_series(data, sensor_name, series_name) {
@@ -276,7 +194,61 @@ Vue.component('graph', {
             
             series.x_extent = d3.extent(series.data, (d) => d.x);
             series.y_extent = d3.extent(series.data, (d) => d.y);
+            series.latest_time = series.data.slice(-1)[0].x;
+            series.selected_time = series.latest_time;
+            series.latest_value = series.data.slice(-1)[0].y;
+            series.selected_value = series.latest_value;
             return series;
+        },
+        select_time(x_time) {
+            this.selected_time = x_time;
+            d3.select(this.$refs.current_x)
+                .text(d3.timeFormat("%a %H:%M")(x_time));
+            d3.select(this.$refs.rel_current_x)
+                .text(moment(x_time).fromNow());
+
+            // move the vertical line
+            this.mouse_g.select(".mouse-line")
+                .attr("d", () => {
+                    var d = "M" + this.xScale(x_time) + "," + this.yScale.range()[0];
+                    d += " " + this.xScale(x_time) + "," + 0;
+                    return d;
+                });
+            
+            // position the circle and text
+            var self = this;
+            this.mouse_g.selectAll(".mouse-per-line")
+                .each(function(d) {
+                    var xDate = x_time,
+                        bisect = d3.bisector((d) => { return +d.x; }).right;
+                        index = bisect(d.data, xDate);
+                    startDatum = d.data[index - 1],
+                    endDatum = d.data[index];
+                    if (!startDatum) {
+                        startDatum = endDatum;
+                    }
+                    if (!endDatum){
+                        endDatum = startDatum;
+                    }
+                    interpolate = d3.interpolateNumber(startDatum.y, endDatum.y),
+                    range = endDatum.x - startDatum.x,
+                    valueY = interpolate((xDate - startDatum.x) / range);
+
+                    if (!valueY)
+                    {
+                        d.selected_value = d.latest_value;
+                        d.selected_time = d.latest_time;
+                    } else {
+                        d.selected_value = valueY;
+                        d.selected_time = x_time;
+                    }                    
+                })
+                .attr("transform", (d) => "translate(" + this.xScale(d.selected_time) + "," + this.yScale(d.selected_value) +")");
+            
+            d3.select(this.$refs.legend_values)
+                .selectAll(".legend-values")
+                .transition(this.transition_time)
+                .text((d) => d.selected_value.toFixed(2));
         },
         // Draw chart
         draw() {
@@ -369,13 +341,6 @@ Vue.component('graph', {
                 .attr("d", (d) => line(d.data))
                 .attr("transform", null);
 
-            // Draw area
-            // Plotter
-            //var area = d3.area()
-            //    .x((d)=>{ return this.xScale(series.x_access(d)); })
-            //    .y0(scale.y(0))
-            //    .y1((d)=>{ return this.yScale(series.y_access(d)); });
-
             // Update
             var seriesArea = seriesGEnter
                 .selectAll('.area')
@@ -393,22 +358,6 @@ Vue.component('graph', {
                 .attr('class', 'area')
                 .transition(this.transition_time)
                 .attr('d', (d) => lineArea(d));
-            //return;
-            // Draw point series
-            // Update
-            // var seriesPointsG = svg
-            //     .selectAll('.pointSeries')
-            //     .data((d) => {return [d];});
-
-            // // Exit
-            // seriesPointsG.exit().remove();
-
-            // // Enter
-            // var seriesPointsG = seriesPointsG.enter()
-            //     .append('g')
-            //     .attr('class', 'pointSeries')
-            //     .merge(seriesPointsG)
-                
 
             // Draw points
             // Update
@@ -441,50 +390,9 @@ Vue.component('graph', {
                 .attr('cy', (d) => {
                     return this.yScale(d.y);
                 });
-
-            return;     
-            var minerText = d3.select("#legend").selectAll("div").data(dta)
-            var minerEnter = minerText.enter()
-            .append("div")
-            .attr("class", "legenditem")
-            .style("color", function(d) {
-            return z(d.id);
-            })
-            .merge(minerText)
-            .text(function(d) {
-            return d.id + ":" + d.values[d.values.length - 1].speed;
-            })
-
-
-            return;
-            var lines = svg.selectAll(".line")
-                .data([data])
-                .attr("class", "line")
-
-            // transition from previous paths to new paths
-            lines.transition()
-                .duration(this.transition_time)
-                .attr("d", smoothLine)
-                .style("stroke", function(){
-                    return '#'+Math.floor(Math.random()*16777215).toString(16);
-                });
-
-            // enter any new lines
-            lines.enter()
-                .append("path")
-                .attr("class","line")
-                .attr("fill", "none")
-                .attr("d", smoothLine)
-                .style("stroke", function(){
-                    return '#'+Math.floor(Math.random()*16777215).toString(16);
-                });
-
-            // exit
-            lines.exit()
-                .remove();
         },
         draw_cursors(series) {
-            var mouseG = this.mouse_g;
+            var mouseG = this.mouse_series_g;
             
             // here's a g for each circle and text on the line
             var mousePerLine = mouseG.selectAll('.mouse-per-line')
@@ -504,13 +412,27 @@ Vue.component('graph', {
                 .style("opacity", "0");
 
             // the text
-            d3.select(this.$refs.legend_values)
+            var legendEntry = d3.select(this.$refs.legend_values)
                 .selectAll(".legend-keys")
                 .data(series)
                 .enter()
                 .append("h6")
-                .attr("class", "legend-keys")
-                .text((d) => d.sensor);
+                .attr("class", "legend-keys");
+            legendEntry.append("div")
+                .style("display", "inline-block")
+                .style("padding", "8px")
+                .style("vertical-align", "middle")
+                .style("width", "10px")
+                .style("height", "10px")
+                .style("margin", "5px 5px 5px 5px")
+                .style("background-color", (d) => this.zScale(d.name))
+                
+            legendEntry.append("span")
+                .text((d) => d.sensor + ": ");
+
+            legendEntry.append("span")
+                .attr("class", "legend-values")
+                .text((d) => d.selected_value.toFixed(2));
         },
     },
 })
