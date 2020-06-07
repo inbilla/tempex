@@ -8,6 +8,7 @@ Vue.component('graph', {
             svg: null,
             xScale: null,
             yScale: null,
+            transition_time: 1500,
         };
     },
     template: `
@@ -106,9 +107,15 @@ Vue.component('graph', {
                 }
                 return sensor[series_name];
             };
-            series.data = data.filter((d)=>{return series.y_access(d) !== null;});
-            series.y_extent = d3.extent(series.data, series.y_access);
-            series.x_extent = d3.extent(series.data, series.x_access);
+            series.data = data
+                .filter((d)=>{return series.y_access(d) !== null;})
+                .map((d) => ({
+                    x: series.x_access(d),
+                    y: series.y_access(d),
+                }));
+            
+            series.x_extent = d3.extent(series.data, (d) => d.x);
+            series.y_extent = d3.extent(series.data, (d) => d.y);
             return series;
         },
         // Draw chart
@@ -145,7 +152,7 @@ Vue.component('graph', {
             var svg = this.svg;
             svg.selectAll(".x.axis")
                 .transition()
-                .duration(1500)
+                .duration(this.transition_time)
                 .ease(d3.easeLinear, 2)
                 .call(xAxis)
                 .selectAll("text")	
@@ -155,21 +162,20 @@ Vue.component('graph', {
                 .attr("transform", "rotate(-65)");
             svg.selectAll(".y.axis")
                 .transition()
-                .duration(1500)
+                .duration(this.transition_time)
                 .call(yAxis)
         },
         draw_lines(series) {
-            var smoothLine = d3.line()
+            var line = d3.line()
                 //.curve(d3.curveCardinal)
-                .x((d)=>{ return this.xScale(x_access(d)); })
-                .y((d)=>{ return this.yScale(y_access(d)); });
+                .x((d)=>{ return this.xScale(d.x); })
+                .y((d)=>{ return this.yScale(d.y); });
             var lineArea = d3.area()
                 //.curve(d3.curveCardinal)    
-                .x((d)=>{ return this.xScale(x_access(d)); })
+                .x((d)=>{ return this.xScale(d.x); })
                 .y0(this.yScale(0))
-                .y1((d)=>{ return this.yScale(y_access(d)); })
-                .defined(function (d) { return y_access(d) !== null; });
-
+                .y1((d)=>{ return this.yScale(d.y); });
+                
             // Draw lines:
             // draw the lines
             var svg = this.svg;
@@ -179,6 +185,8 @@ Vue.component('graph', {
                 //Enter
                 .append("g")
                 .attr("class", "seriesLine")
+                .style('fill', (d) => {return this.zScale(d.name);})
+                .style("stroke", (d) => {return this.zScale(d.name);})
                 .merge(seriesG);
 
             // Make a path for each series
@@ -194,15 +202,9 @@ Vue.component('graph', {
                 .merge(seriesPath)
                 //Update
                 .transition()
-                .duration(1500)
+                .duration(this.transition_time)
                 .ease(d3.easeLinear, 2)
-                .attr("d", (series) => {
-                    return d3.line()
-                        //.curve(d3.curveCardinal)
-                        .x((d)=>{ return this.xScale(series.x_access(d)); })
-                        .y((d)=>{ return this.yScale(series.y_access(d)); })
-                        (series.data);
-                })
+                .attr("d", (d) => line(d.data))
                 .attr("transform", null);
 
             // Draw area
@@ -215,80 +217,68 @@ Vue.component('graph', {
             // Update
             var seriesArea = seriesGEnter
                 .selectAll('.area')
-                .data((d) => {return [d];});
+                .data((d) => {return [d.data];});
             seriesArea.exit().remove();
 
             // Enter
             var seriesArea = seriesArea.enter()
                 .append('path')
-                .attr('d', (series) => {
-                    return d3.area()
-                        .x((d)=>{ return this.xScale(series.x_access(d)); })
-                        .y0(this.yScale(0))
-                        .y1((d)=>{ return this.yScale(series.y_access(d)); })
-                        (series.data);
-                })
-                .style('fill', (d) => {return this.zScale(d.name);})
+                .attr('d', (d) => lineArea(d))
+                //.style('fill', (d) => {return this.zScale(d.name);})
                 .style('fill-opacity', 0.25)
                 .style('stroke', 'none')
                 .merge(seriesArea)
                 .attr('class', 'area')
-                .transition(1500)
-                .attr('d',  (series) => {
-                    return d3.area()
-                        .x((d)=>{ return this.xScale(series.x_access(d)); })
-                        .y0(this.yScale(0))
-                        .y1((d)=>{ return this.yScale(series.y_access(d)); })
-                        (series.data);
-                });
-
+                .transition(this.transition_time)
+                .attr('d', (d) => lineArea(d));
+            //return;
             // Draw point series
             // Update
-            var seriesPointsG = svg
-                .selectAll('.pointSeries')
-                .data((d) => {return [d];});
+            // var seriesPointsG = svg
+            //     .selectAll('.pointSeries')
+            //     .data((d) => {return [d];});
 
-            // Exit
-            seriesPointsG.exit().remove();
+            // // Exit
+            // seriesPointsG.exit().remove();
 
-            // Enter
-            var seriesPointsG = seriesPointsG.enter()
-                .append('g')
-                .attr('class', 'pointSeries')
-                .merge(seriesPointsG)
+            // // Enter
+            // var seriesPointsG = seriesPointsG.enter()
+            //     .append('g')
+            //     .attr('class', 'pointSeries')
+            //     .merge(seriesPointsG)
                 
 
             // Draw points
             // Update
             var seriesPoints = seriesGEnter
                 .selectAll('.point')
-                .data((d) => {return [d];});
+                .data((d) => {return d.data;});
 
             // Exit
-            $point.exit().remove();
+            seriesPoints.exit().remove();
 
             // Enter
-            var $point = $point
-            .enter()
-            .append('circle')
-            .attr('class', 'point')
-            .attr('cx', function(d) {
-            return scale.x(d.timestamp);
-            })
-            .attr('cy', function(d) {
-            return scale.y(d.value);
-            })
-            .attr('r', 4)
-            .style('fill', '#fff')
-            .style('stroke-width', 2)
-            .merge($point)
-            .transition(t)
-            .attr('cx', function(d) {
-            return scale.x(d.timestamp);
-            })
-            .attr('cy', function(d) {
-            return scale.y(d.value);
-            });
+            var seriesPoints = seriesPoints
+                .enter()
+                .append('circle')
+                .attr('class', 'point')
+                .attr('cx', (d) => {
+                    return this.xScale(d.x);
+                })
+                .attr('cy', (d) => {
+                    return this.yScale(d.y);
+                })
+                .attr('r', 0.5)
+                .style('fill', 'none')
+                .style('stroke-width', 2)
+                .merge(seriesPoints)
+                .transition(this.transition_time)
+                .attr('cx', (d) => {
+                    return this.xScale(d.x);
+                })
+                .attr('cy', (d) => {
+                    return this.yScale(d.y);
+                });
 
             return;     
             var minerText = d3.select("#legend").selectAll("div").data(dta)
@@ -311,7 +301,7 @@ Vue.component('graph', {
 
             // transition from previous paths to new paths
             lines.transition()
-                .duration(1500)
+                .duration(this.transition_time)
                 .attr("d", smoothLine)
                 .style("stroke", function(){
                     return '#'+Math.floor(Math.random()*16777215).toString(16);
