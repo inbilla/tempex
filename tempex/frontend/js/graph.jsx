@@ -14,8 +14,21 @@ Vue.component('graph', {
     },
     template: `
     <div class="container-fluid">
-        <div class="container">
-            <div class="row" ref="d3_target">
+        <div class="row">
+            <div class="col-10" ref="d3_target">
+            </div>
+            <div class="col-2 my-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 ref="d3_legend_header">Temperature</h5>
+                    </div>
+                    <div class="card-body" ref="d3_legend">
+                        <h6 class="float-right" ref="rel_current_x">now</h6>
+                        <h5 ref="current_x">Monday 19:30</h5>
+                        <div ref="legend_values">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -56,20 +69,24 @@ Vue.component('graph', {
         },
         create_chart() {
             // set the dimensions and margins of the graph
-            var margin = {top: 10, right: 30, bottom: 90, left: 60},
+            var margin = {top: 10, right: 8, bottom: 55, left: 40}, //{top: 10, right: 30, bottom: 90, left: 60},
                 width = 1000 - margin.left - margin.right,
-                height = 300 - margin.top - margin.bottom;
+                height = 250 - margin.top - margin.bottom;
+
+            // Do a title
+            d3.select(this.$refs.d3_legend_header)
+                .text(this.series)
 
             // append the svg object to the body of the page
             this.svg = d3.select(this.$refs.d3_target)
                 .append("svg")
-                //.attr("viewBox", "0 0 960 540")
+                .attr("viewBox", "0 0 1000 250")
+                .attr("perserveAspectRatio", "xMinYMid")
                 //.attr("preserveAspectRatio", "xMidYMid meet")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
+                //.attr("width", width + margin.left + margin.right)
+                //.attr("height", height + margin.top + margin.bottom)
                 .append("g")
-                .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
             // Add X axis --> it is a date format
             var data = d3.entries(this.query_result);
@@ -78,7 +95,7 @@ Vue.component('graph', {
                 .range([ 0, width ]);
             this.svg.append("g")
                 .attr("transform", "translate(0," + height + ")")
-                .style("font-size", "14px")
+                //.style("font-size", "14px")
                 .attr("class","x axis")
                 .call(d3.axisBottom(this.xScale));
 
@@ -89,6 +106,15 @@ Vue.component('graph', {
             this.svg.append("g")
                 .attr("class","y axis")
                 .call(d3.axisLeft(this.yScale));
+            this.svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("fill", "currentColor")
+                .style("text-anchor", "middle")
+                //.style("font-size", "10px")
+                .text(this.series);  
 
             // Add Z axis
             this.zScale = d3.scaleOrdinal(d3.schemeCategory10);
@@ -160,7 +186,13 @@ Vue.component('graph', {
                     })
                 .on('mousemove', () => { // mouse moving over canvas
                     var mouse = d3.mouse(mouseCap.node());
+                    var xDate = this.xScale.invert(mouse[0]);
 
+                    d3.select(this.$refs.current_x)
+                        .text(d3.timeFormat("%a %H:%M")(xDate));
+                    d3.select(this.$refs.rel_current_x)
+                        .text(moment(xDate).fromNow());
+                    
                     // move the vertical line
                     mouseG.select(".mouse-line")
                         .attr("d", () => {
@@ -275,7 +307,8 @@ Vue.component('graph', {
             var xAxis = d3.axisBottom(this.xScale)
                 .tickFormat(d3.timeFormat("%a %H:%M")) // %Y-%m-%d
                 .ticks(d3.timeHour.every(3));
-            var yAxis = d3.axisLeft(this.yScale);
+            var yAxis = d3.axisLeft(this.yScale)
+                .ticks(10);
 
             // Draw axis
             var svg = this.svg;
@@ -471,8 +504,13 @@ Vue.component('graph', {
                 .style("opacity", "0");
 
             // the text
-            mousePerLine.append("text")
-                .attr("transform", "translate(10,3)");
+            d3.select(this.$refs.legend_values)
+                .selectAll(".legend-keys")
+                .data(series)
+                .enter()
+                .append("h6")
+                .attr("class", "legend-keys")
+                .text((d) => d.sensor);
         },
     },
 })
