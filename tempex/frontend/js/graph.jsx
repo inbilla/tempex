@@ -91,6 +91,116 @@ Vue.component('graph', {
 
             // Add Z axis
             this.zScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // Add the series group
+            this.series_g = this.svg.append("g");
+
+            // Add mouse over helper
+            this.create_mouse_helper();
+        },
+        create_mouse_helper(){
+            var svg = this.svg;
+            // append a g for all the mouse over nonsense
+            var mouseG = svg.append("g")
+                .attr("class", "mouse-over-effects");
+
+            // this is the vertical line
+            mouseG.append("path")
+                .attr("class", "mouse-line")
+                .style("stroke", "black")
+                .style("stroke-width", "1px")
+                .style("opacity", "0");
+            
+            // here's a g for each circle and text on the line
+            // var mousePerLine = mouseG.selectAll('.mouse-per-line')
+            //     .data(cities)
+            //     .enter()
+            //     .append("g")
+            //     .attr("class", "mouse-per-line");
+
+            // // the circle
+            // mousePerLine.append("circle")
+            //     .attr("r", 7)
+            //     .style("stroke", function(d) {
+            //     return color(d.name);
+            //     })
+            //     .style("fill", "none")
+            //     .style("stroke-width", "1px")
+            //     .style("opacity", "0");
+
+            // // the text
+            // mousePerLine.append("text")
+            //     .attr("transform", "translate(10,3)");
+
+            // rect to capture mouse movements
+            var mouseCap = mouseG.append('svg:rect')
+                .attr('width', this.xScale.range()[1])
+                .attr('height', this.yScale.range()[0])
+                .attr('fill', 'none')
+                .attr('pointer-events', 'all');
+            mouseCap
+                .on('mouseout', () => { // on mouse out hide line, circles and text
+                    d3.select(".mouse-line")
+                        .style("opacity", "0");
+                    d3.selectAll(".mouse-per-line circle")
+                        .style("opacity", "0");
+                    d3.selectAll(".mouse-per-line text")
+                        .style("opacity", "0");
+                    })
+                .on('mouseover', () => { // on mouse in show line, circles and text
+                    d3.select(".mouse-line")
+                        .style("opacity", "1");
+                    d3.selectAll(".mouse-per-line circle")
+                        .style("opacity", "1");
+                    d3.selectAll(".mouse-per-line text")
+                        .style("opacity", "1");
+                    })
+                .on('mousemove', () => { // mouse moving over canvas
+                    var mouse = d3.mouse(mouseCap.node());
+
+                    // move the vertical line
+                    d3.select(".mouse-line")
+                        .attr("d", () => {
+                            var d = "M" + mouse[0] + "," + this.yScale.range()[0];
+                            d += " " + mouse[0] + "," + 0;
+                            return d;
+                        });
+                    })
+                // // position the circle and text
+                // d3.selectAll(".mouse-per-line")
+                //     .attr("transform", function(d, i) {
+                //     console.log(width/mouse[0])
+                //     var xDate = x.invert(mouse[0]),
+                //         bisect = d3.bisector(function(d) { return d.date; }).right;
+                //         idx = bisect(d.values, xDate);
+
+                //     // since we are use curve fitting we can't relay on finding the points like I had done in my last answer
+                //     // this conducts a search using some SVG path functions
+                //     // to find the correct position on the line
+                //     // from http://bl.ocks.org/duopixel/3824661
+                //     var beginning = 0,
+                //         end = lines[i].getTotalLength(),
+                //         target = null;
+
+                //     while (true){
+                //         target = Math.floor((beginning + end) / 2);
+                //         pos = lines[i].getPointAtLength(target);
+                //         if ((target === end || target === beginning) && pos.x !== mouse[0]) {
+                //             break;
+                //         }
+                //         if (pos.x > mouse[0])      end = target;
+                //         else if (pos.x < mouse[0]) beginning = target;
+                //         else break; //position found
+                //     }
+
+                //     // update the text with y value
+                //     d3.select(this).select('text')
+                //         .text(y.invert(pos.y).toFixed(2));
+
+                //     // return position
+                //     return "translate(" + mouse[0] + "," + pos.y +")";
+                // });
+            //});
         },
         prepare_series(data, sensor_name, series_name) {
             var series = {};
@@ -178,7 +288,7 @@ Vue.component('graph', {
                 
             // Draw lines:
             // draw the lines
-            var svg = this.svg;
+            var svg = this.series_g;
             // Make all the 'Groups' for each series
             var seriesG = svg.selectAll(".seriesLine").data(series);
             var seriesGEnter = seriesG.enter()
