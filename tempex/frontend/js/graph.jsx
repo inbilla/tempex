@@ -170,7 +170,7 @@ Vue.component('graph', {
                     // position the circle and text
                     var self = this;
                     mouseG.selectAll(".mouse-per-line")
-                        .attr("transform", function(d) {
+                        .each(function(d) {
                             var xDate = self.xScale.invert(mouse[0]),
                                 bisect = d3.bisector((d) => { return +d.x; }).right;
                                 index = bisect(d.data, xDate);
@@ -185,6 +185,11 @@ Vue.component('graph', {
                             interpolate = d3.interpolateNumber(startDatum.y, endDatum.y),
                             range = endDatum.x - startDatum.x,
                             valueY = interpolate((xDate - startDatum.x) / range);
+
+                            if (!valueY)
+                            {
+                                return;
+                            }
                             // since we are use curve fitting we can't relay on finding the points like I had done in my last answer
                             // this conducts a search using some SVG path functions
                             // to find the correct position on the line
@@ -207,9 +212,8 @@ Vue.component('graph', {
                             // // update the text with y value
                             d3.select(this).select('text')
                                 .text(valueY.toFixed(2));
-
-                            // // return position
-                            return "translate(" + mouse[0] + "," + self.yScale(valueY) +")";
+                            d3.select(this)
+                                .attr("transform", "translate(" + mouse[0] + "," + self.yScale(valueY) +")");
                         });
                 });
         },
