@@ -1,5 +1,5 @@
 Vue.component('graph', {
-    props: ['series'],
+    props: ['series', 'title'],
     data: function() {
         return {
             update_counter: 0,
@@ -17,11 +17,11 @@ Vue.component('graph', {
     template: `
     <div class="container-fluid">
         <div class="row">
-            <div class="col-10" ref="d3_target">
+            <div class="col-4 col-md-10" ref="d3_target">
             </div>
-            <div class="col-2 my-auto">
+            <div class="col-8 col-md-2 my-auto">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header text-center">
                         <h5 ref="d3_legend_header">Temperature</h5>
                     </div>
                     <div class="card-body" ref="d3_legend">
@@ -77,13 +77,16 @@ Vue.component('graph', {
 
             // Do a title
             d3.select(this.$refs.d3_legend_header)
-                .text(this.series)
+                .text(this.title)
 
             // append the svg object to the body of the page
             this.svg = d3.select(this.$refs.d3_target)
                 .append("svg")
+                //.attr("class", "w-100 h-100")
+                //.attr("height", "100%")
+                //.attr("width", "100%")
                 .attr("viewBox", "0 0 1000 250")
-                .attr("perserveAspectRatio", "xMinYMid")
+                .attr("perserveAspectRatio", "xMinYMid meet")
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -168,7 +171,13 @@ Vue.component('graph', {
                     var xDate = this.xScale.invert(mouse[0]);
                     
                     this.select_time(xDate);
-                });
+                })
+                .on('touchmove', () => { // mouse moving over canvas
+                    var touch = d3.touches(this)[0]
+                    var xDate = this.xScale.invert(touch[0]);
+                    
+                    this.select_time(xDate);
+                }, true); 
         },
         prepare_diff_series(data, sensor_names, series_name){
             var a_value_accessor = function(d) {
