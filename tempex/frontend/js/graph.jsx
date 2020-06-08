@@ -226,6 +226,9 @@ Vue.component('graph', {
                 }))
                 .sort(function(a, b) { return a.x - b.x; });
             
+            return this.prepare_series_again(series);
+        },
+        prepare_series_again(series) {
             series.x_extent = d3.extent(series.data, (d) => d.x);
             series.y_extent = d3.extent(series.data, (d) => d.y);
             series.latest_time = series.data.slice(-1)[0].x;
@@ -289,12 +292,57 @@ Vue.component('graph', {
                 .transition(this.transition_time)
                 .text((d) => d.selected_value.toFixed(2));
         },
+        mov_avg(xy_data, n) {
+            var current_sum = 0;
+            var sum_count = 0;
+            return xy_data.map((d, i, a) => {
+                    current_sum += d.y; 
+                    sum_count += 1;
+                    
+                    if (sum_count > n)
+                    {
+                        current_sum -= a[i-n].y;
+                        sum_count -= 1;
+                    }
+                    if (sum_count == n) {
+                        return {
+                            x: d.x,
+                            y: current_sum/n,
+                        }
+                    } else {
+                        return {
+                            x: d.x,
+                            y: null,
+                        }
+                    }
+                })
+                .filter((d)=>{return d.y !== null;});
+        },
+        gradient(xy_data) {
+            return xy_data.map((d, i, a) => {
+                if (i == 0){
+                    return {
+                        x: d.x,
+                        y: null,
+                    }
+                } else {
+                    return {
+                        x: d.x,
+                        y: d.y - a[i-1].y,
+                    }
+                }
+            })
+            .filter((d)=>{return d.y !== null;});
+        },
         // Draw chart
         draw() {
             var data = d3.entries(this.query_result);
 
             var series = [];
             series.push(this.prepare_diff_series(data, ["Indoors", "Outside"], this.series));
+            series[0].data = this.mov_avg(this.gradient(series[0].data), 3);
+            //series[0].data = this.gradient(series[0].data);
+            series[0] = this.prepare_series_again(series[0]);
             //series.push(this.prepare_raw_series(data, "Indoors", this.series));
             //series.push(this.prepare_raw_series(data, "Outside", this.series));
             this.series_data = series;
