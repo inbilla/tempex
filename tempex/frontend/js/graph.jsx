@@ -11,6 +11,7 @@ Vue.component('graph', {
             yScale: null,
             transition_time: 1500,
             selected_time: null,
+            series_data: null,
         };
     },
     template: `
@@ -207,6 +208,10 @@ Vue.component('graph', {
             d3.select(this.$refs.rel_current_x)
                 .text(moment(x_time).fromNow());
 
+            if (!this.series_data) {
+                return;
+            }
+
             // move the vertical line
             this.mouse_g.select(".mouse-line")
                 .attr("d", () => {
@@ -247,6 +252,7 @@ Vue.component('graph', {
             
             d3.select(this.$refs.legend_values)
                 .selectAll(".legend-values")
+                .data(this.series_data)
                 .transition(this.transition_time)
                 .text((d) => d.selected_value.toFixed(2));
         },
@@ -257,10 +263,17 @@ Vue.component('graph', {
             var series = [];
             series.push(this.prepare_series(data, "Indoors", this.series));
             series.push(this.prepare_series(data, "Outside", this.series));
+            this.series_data = series;
 
             this.draw_axes(series);
             this.draw_lines(series);
             this.draw_cursors(series);
+
+            if (!this.selected_time) {
+                this.select_time(moment())
+            } else {
+                this.select_time(this.selected_time)
+            }
         },
         draw_axes(series) {
             var x_extents = [];
@@ -412,10 +425,11 @@ Vue.component('graph', {
                 .style("opacity", "0");
 
             // the text
-            var legendEntry = d3.select(this.$refs.legend_values)
+            var legendEntrys = d3.select(this.$refs.legend_values)
                 .selectAll(".legend-keys")
                 .data(series)
-                .enter()
+            legendEntrys.exit().remove();
+            var legendEntry = legendEntrys.enter()
                 .append("h6")
                 .attr("class", "legend-keys");
             legendEntry.append("div")
@@ -433,6 +447,11 @@ Vue.component('graph', {
             legendEntry.append("span")
                 .attr("class", "legend-values")
                 .text((d) => d.selected_value.toFixed(2));
+            
+            //legendEntry.merge(legendEntrys)
+            //    .selectAll(".legend-values")
+            ///    .transition(this.transition_time)
+            //    .text((d) => d.selected_value.toFixed(2));
         },
     },
 })
