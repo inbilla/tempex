@@ -170,21 +170,45 @@ Vue.component('graph', {
                     this.select_time(xDate);
                 });
         },
-        prepare_series(data, sensor_name, series_name) {
-            var series = {};
-            series.name = sensor_name + " " + series_name;
-            series.sensor = sensor_name;
-            series.metric = series_name;
-            series.x_access = function(d) {
-                return new Date(parseInt(d.key));
+        prepare_diff_series(data, sensor_names, series_name){
+            var a_value_accessor = function(d) {
+                var sensor = d.value[sensor_names[0]];
+                if (!sensor) {
+                    return null;
+                }
+                return sensor[series_name];
             };
-            series.y_access = function(d) {
+            var b_value_accessor = function(d) {
+                var sensor = d.value[sensor_names[1]];
+                if (!sensor) {
+                    return null;
+                }
+                return sensor[series_name];
+            };
+            var value_accessor = function(d) {
+                return a_value_accessor(d) - b_value_accessor(d);
+            }
+
+            return this.prepare_series(data, sensor_names[0] + " - " + sensor_names[1], value_accessor);
+        },
+        prepare_raw_series(data, sensor_name, series_name){
+            var value_accessor = function(d) {
                 var sensor = d.value[sensor_name];
                 if (!sensor) {
                     return null;
                 }
                 return sensor[series_name];
             };
+
+            return this.prepare_series(data, sensor_name, value_accessor);
+        },
+        prepare_series(data, series_name, value_accessor) {
+            var series = {};
+            series.name = series_name;
+            series.x_access = function(d) {
+                return new Date(parseInt(d.key));
+            };
+            series.y_access = value_accessor;
             series.data = data
                 .filter((d)=>{return series.y_access(d) !== null;})
                 .map((d) => ({
@@ -261,8 +285,9 @@ Vue.component('graph', {
             var data = d3.entries(this.query_result);
 
             var series = [];
-            series.push(this.prepare_series(data, "Indoors", this.series));
-            series.push(this.prepare_series(data, "Outside", this.series));
+            series.push(this.prepare_diff_series(data, ["Indoors", "Outside"], this.series));
+            //series.push(this.prepare_raw_series(data, "Indoors", this.series));
+            //series.push(this.prepare_raw_series(data, "Outside", this.series));
             this.series_data = series;
 
             this.draw_axes(series);
@@ -442,7 +467,7 @@ Vue.component('graph', {
                 .style("background-color", (d) => this.zScale(d.name))
                 
             legendEntry.append("span")
-                .text((d) => d.sensor + ": ");
+                .text((d) => d.name + ": ");
 
             legendEntry.append("span")
                 .attr("class", "legend-values")
