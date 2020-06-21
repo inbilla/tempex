@@ -4,7 +4,7 @@ Vue.component('graph', {
         return {
             update_counter: 0,
             interval: null,
-            update_period: 1000*5, //*60*5,
+            update_period: 1000*60*5, //*60*5,
             query_result: {},
             svg: null,
             xScale: null,
@@ -17,9 +17,9 @@ Vue.component('graph', {
     template: `
     <div class="container-fluid">
         <div class="row">
-            <div class="col-4 col-md-10" ref="d3_target">
+            <div class="col-12 col-md-10" ref="d3_target">
             </div>
-            <div class="col-8 col-md-2 my-auto">
+            <div class="col-12 col-md-2 my-auto">
                 <div class="card">
                     <div class="card-header text-center">
                         <h5 ref="d3_legend_header">Temperature</h5>
@@ -339,12 +339,16 @@ Vue.component('graph', {
             var data = d3.entries(this.query_result);
 
             var series = [];
-            series.push(this.prepare_diff_series(data, ["Indoors", "Outside"], this.series));
-            series[0].data = this.mov_avg(this.gradient(series[0].data), 3);
+            //series.push(this.prepare_diff_series(data, ["Indoors", "Outside"], this.series));
+            //series[0].data = this.mov_avg(this.gradient(series[0].data), 1);
             //series[0].data = this.gradient(series[0].data);
-            series[0] = this.prepare_series_again(series[0]);
+            //series[0] = this.prepare_series_again(series[0]);
+            series.push(this.prepare_raw_series(data, "Indoors", this.series));
             //series.push(this.prepare_raw_series(data, "Indoors", this.series));
-            //series.push(this.prepare_raw_series(data, "Outside", this.series));
+            //series[1].data = this.mov_avg(this.gradient(series[1].data), 1);
+            //series[0].data = this.gradient(series[0].data);
+            //series[1] = this.prepare_series_again(series[1]);
+            series.push(this.prepare_raw_series(data, "Outside", this.series));
             this.series_data = series;
 
             this.draw_axes(series);
