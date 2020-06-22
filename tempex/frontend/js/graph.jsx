@@ -17,17 +17,19 @@ Vue.component('graph', {
     template: `
     <div class="container-fluid">
         <div class="row">
-            <div class="col-12 col-md-10" ref="d3_target">
-            </div>
+            <div class="col-12 col-md-10" ref="d3_target" ontouchmove=""></div>
             <div class="col-12 col-md-2 my-auto">
                 <div class="card">
                     <div class="card-header text-center">
                         <h5 ref="d3_legend_header">Temperature</h5>
                     </div>
                     <div class="card-body" ref="d3_legend">
-                        <h6 class="float-right" ref="rel_current_x">now</h6>
-                        <h5 ref="current_x">Monday 19:30</h5>
-                        <div ref="legend_values">
+                        <div class="container-fluid">
+                            <h5 ref="current_x" style="margin:0">Monday 19:30</h5>
+                            <h6 ref="rel_current_x" class="text-right">now</h6>
+                        </div>
+                        <div class="container-fluid">
+                            <div ref="legend_values"></div>
                         </div>
                     </div>
                 </div>
@@ -148,34 +150,40 @@ Vue.component('graph', {
                 .attr('height', this.yScale.range()[0])
                 .attr('fill', 'none')
                 .attr('pointer-events', 'all');
+
+            var touch_end = () => { // on mouse out hide line, circles and text
+                mouseG.select(".mouse-line")
+                    .style("opacity", "0");
+                mouseG.selectAll(".mouse-per-line circle")
+                    .style("opacity", "0");
+                mouseG.selectAll(".mouse-per-line text")
+                    .style("opacity", "0");
+                this.select_time(moment())
+            };
+            var touch_begin = () => { // on mouse in show line, circles and text
+                mouseG.select(".mouse-line")
+                    .style("opacity", "0.7");
+                mouseG.selectAll(".mouse-per-line circle")
+                    .style("opacity", "1");
+                mouseG.selectAll(".mouse-per-line text")
+                    .style("opacity", "1");
+            };
+
             mouseCap
-                .on('mouseout', () => { // on mouse out hide line, circles and text
-                    mouseG.select(".mouse-line")
-                        .style("opacity", "0");
-                    mouseG.selectAll(".mouse-per-line circle")
-                        .style("opacity", "0");
-                    mouseG.selectAll(".mouse-per-line text")
-                        .style("opacity", "0");
-                    this.select_time(moment())
-                    })
-                .on('mouseover', () => { // on mouse in show line, circles and text
-                    mouseG.select(".mouse-line")
-                        .style("opacity", "0.7");
-                    mouseG.selectAll(".mouse-per-line circle")
-                        .style("opacity", "1");
-                    mouseG.selectAll(".mouse-per-line text")
-                        .style("opacity", "1");
-                    })
+                .on('mouseout', touch_end)
+                .on('mouseover', touch_begin)
                 .on('mousemove', () => { // mouse moving over canvas
+                    touch_begin();
                     var mouse = d3.mouse(mouseCap.node());
                     var xDate = this.xScale.invert(mouse[0]);
-                    
                     this.select_time(xDate);
                 })
+                .on('touchstart', touch_begin)
+                .on('touchend', touch_end)
                 .on('touchmove', () => { // mouse moving over canvas
-                    var touch = d3.touches(this)[0]
+                    touch_begin();
+                    var touch = d3.touches(mouseCap.node())[0];
                     var xDate = this.xScale.invert(touch[0]);
-                    
                     this.select_time(xDate);
                 }, true); 
         },
